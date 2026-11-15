@@ -25,7 +25,9 @@ create table vlasov_food.restaurant (
     description text not null,
     work_start time not null,
     work_end time not null,
-    company_details text not null,
+    inn varchar(12) not null,
+    ogrn varchar(15) not null,
+    bank_account varchar(20) not null,
     rating numeric(3, 2),
     status vlasov_food.restaurant_status not null,
     check (work_end > work_start),
@@ -34,7 +36,9 @@ create table vlasov_food.restaurant (
 
 create table vlasov_food.courier (
     courier_id uuid primary key default exts.uuid_generate_v4(),
-    fio varchar(150) not null,
+    last_name varchar(50) not null,
+    first_name varchar(50) not null,
+    middle_name varchar(50) not null,
     phone_number char(11) not null,
     status vlasov_food.courier_status not null,
     hire_date date not null,

@@ -97,9 +97,9 @@
 |---|---|---|---|
 | `client` | `login`, `password`, `phone_number` | BR-2.1, BR-2.3 | Клиент регистрируется по логину, паролю и телефону. Пароль хранится как MD5 |
 | `address` | `street`, `house_number` | BR-3.1 | Улица и номер дома есть у каждого адреса |
-| `restaurant` | `restaurant_name`, `description`, `company_details`, `status` | BR-4.1 | Название, описание, реквизиты и статус есть у каждого ресторана |
+| `restaurant` | `restaurant_name`, `description`, `inn`, `ogrn`, `bank_account`, `status` | BR-4.1, BR-4.5 | Название, описание, реквизиты и статус есть у каждого ресторана |
 | `restaurant` | `work_start`, `work_end` | BR-4.4 | График задаётся временем открытия и закрытия |
-| `courier` | `fio`, `phone_number`, `status`, `hire_date`, `coefficient` | BR-6.1, BR-6.4 | Эти сведения есть у каждого курьера |
+| `courier` | `last_name`, `first_name`, `middle_name`, `phone_number`, `status`, `hire_date`, `coefficient` | BR-6.1, BR-6.4 | Эти сведения есть у каждого курьера |
 | `courier_pay` | `year`, `month`, `amount`, `coefficient_used` | BR-10.1, BR-10.2 | Выплата хранит год, месяц, сумму и применённый коэффициент |
 | `product_category` | `product_category_name` | BR-5.7 | У категории есть название |
 | `product` | `product_name`, `price`, `status`, `description` | BR-5.2 | Название, цена, статус и описание есть у каждого блюда |

@@ -28,8 +28,11 @@ language sql as $$
     ),
     best_products as (
         select distinct on (restaurant_id) restaurant_id, product_name
-        from product_qty
-        order by restaurant_id, qty desc, random()
+        from (
+            select restaurant_id, product_name, qty, random() as tie_break
+            from product_qty
+        ) s
+        order by restaurant_id, qty desc, tie_break
     ),
     client_qty as (
         select d.restaurant_id, c.login, count(*) as cnt
@@ -39,8 +42,11 @@ language sql as $$
     ),
     best_clients as (
         select distinct on (restaurant_id) restaurant_id, login
-        from client_qty
-        order by restaurant_id, cnt desc, random()
+        from (
+            select restaurant_id, login, cnt, random() as tie_break
+            from client_qty
+        ) s
+        order by restaurant_id, cnt desc, tie_break
     )
     select r.restaurant_name,
            bp.product_name,

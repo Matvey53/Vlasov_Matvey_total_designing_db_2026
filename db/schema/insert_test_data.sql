@@ -34,6 +34,8 @@ declare
     v_work_end time;
     v_courier_status vlasov_food.courier_status;
     v_order_status vlasov_food.order_status;
+    v_payment_status vlasov_food.payment_status;
+    v_pay_status vlasov_food.order_pay_status;
     v_payment_type vlasov_food.payment_type;
     v_review_type vlasov_food.review_entity_type;
     delivered_count integer;
@@ -65,12 +67,14 @@ begin
         end if;
 
         insert into vlasov_food.courier (
-            fio, phone_number, status, hire_date, dismissal_date, coefficient
+            last_name, first_name, middle_name, phone_number, status, hire_date, dismissal_date, coefficient
         ) values (
-            repeat(
-                substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                1 + floor(random() * 3)::int
-            ),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 3 + floor(random() * 8)::int)),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 3 + floor(random() * 8)::int)),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 3 + floor(random() * 8)::int)),
             '7' || lpad(floor(random() * 10000000000)::bigint::text, 10, '0'),
             v_courier_status,
             v_hire,
@@ -81,14 +85,9 @@ begin
 
         insert into vlasov_food.client (login, password, phone_number)
         values (
-            substring(
-                repeat(
-                    substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                    1 + floor(random() * 2)::int
-                ) || md5(random()::text),
-                1,
-                100
-            ),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 6 + floor(random() * 12)::int))
+            || ((select count(*) from vlasov_food.client) + i)::text,
             md5(random()::text),
             '7' || lpad(floor(random() * 10000000000)::bigint::text, 10, '0')
         ) returning client_id into new_id;
@@ -96,10 +95,8 @@ begin
 
         insert into vlasov_food.product_category (product_category_name)
         values (
-            repeat(
-                substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                1 + floor(random() * 3)::int
-            )
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 4 + floor(random() * 12)::int))
         ) returning product_category_id into new_id;
         categories := array_append(categories, new_id);
     end loop;
@@ -115,10 +112,8 @@ begin
     for i in 1..value * 5 loop
         insert into vlasov_food.address (street, house_number, apartment_office)
         values (
-            repeat(
-                substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                1 + floor(random() * 3)::int
-            ),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 6 + floor(random() * 20)::int)),
             (1 + floor(random() * 200)::int)::text,
             case
                 when random() < 0.3 then null
@@ -134,17 +129,21 @@ begin
 
         insert into vlasov_food.restaurant (
             restaurant_name, address_id, description, work_start, work_end,
-            company_details, status
+            inn, ogrn, bank_account, status
         ) values (
-            repeat(
-                substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                1 + floor(random() * 3)::int
-            ),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 4 + floor(random() * 16)::int)),
             addresses[i],
-            substring(md5(random()::text), 1, 1 + floor(random() * 31)::int),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, case when random() < 0.5
+                                          then 20 + floor(random() * 60)::int
+                                          else 200 + floor(random() * 400)::int end)),
             v_work_start,
             v_work_end,
-            substring(md5(random()::text), 1, 1 + floor(random() * 31)::int),
+            lpad(floor(random() * 10000000000)::bigint::text, 10, '0'),
+            lpad(floor(random() * 10000000000000)::bigint::text, 13, '0'),
+            lpad(floor(random() * 10000000000)::bigint::text, 10, '0')
+                || lpad(floor(random() * 10000000000)::bigint::text, 10, '0'),
             (enum_range(null::vlasov_food.restaurant_status))[
                 1 + floor(random() * cardinality(enum_range(null::vlasov_food.restaurant_status)))::int
             ]
@@ -160,26 +159,30 @@ begin
 
     for i in 1..value * 5 loop
         j := ((i - 1) % value) + 1;
-        v_price := 1000 + floor(random() * 4000)::int;
+        v_price := 200 + floor(random() * 600)::int;
         insert into vlasov_food.product (
             product_name, product_category_id, price, restaurant_id,
             photo_url, status, description
         ) values (
-            repeat(
-                substring(alphabet, 1, 1 + floor(random() * length(alphabet))::int),
-                1 + floor(random() * 3)::int
-            ),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, 4 + floor(random() * 18)::int)),
             categories[1 + floor(random() * value)::int],
             v_price,
             restaurants[j],
             case
                 when random() < 0.5 then null
-                else 'https://cdn.foodexpress.ru/img/' || md5(random()::text) || '.jpg'
+                else 'https://cdn.foodexpress.ru/img/'
+                     || (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+                         from generate_series(1, 8 + floor(random() * 8)::int))
+                     || '.jpg'
             end,
             (enum_range(null::vlasov_food.product_status))[
                 1 + floor(random() * cardinality(enum_range(null::vlasov_food.product_status)))::int
             ],
-            substring(md5(random()::text), 1, 1 + floor(random() * 31)::int)
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, case when random() < 0.5
+                                          then 20 + floor(random() * 60)::int
+                                          else 200 + floor(random() * 400)::int end))
         ) returning product_id into new_id;
         products := array_append(products, new_id);
         prices := array_append(prices, v_price);
@@ -223,6 +226,15 @@ begin
         end loop;
         v_commission := round(order_amount * 0.10, 2);
         v_total := order_amount + v_commission;
+        while v_total < 1000 loop
+            qtys[1] := qtys[1] + 1;
+            order_amount := 0;
+            for k in 1..n_dishes loop
+                order_amount := order_amount + round(rest_prices[chosen[k]] * qtys[k], 2);
+            end loop;
+            v_commission := round(order_amount * 0.10, 2);
+            v_total := order_amount + v_commission;
+        end loop;
 
         order_time := localtimestamp - (random() * 180)::int * interval '1 day';
         if order_time > localtimestamp - interval '3 hours' then
@@ -235,6 +247,14 @@ begin
         v_payment_type := (enum_range(null::vlasov_food.payment_type))[
             1 + floor(random() * cardinality(enum_range(null::vlasov_food.payment_type)))::int
         ];
+        v_payment_status := (enum_range(null::vlasov_food.payment_status))[
+            1 + floor(random() * cardinality(enum_range(null::vlasov_food.payment_status)))::int
+        ];
+        v_pay_status := case v_payment_status
+            when 'успех' then 'оплачен'::vlasov_food.order_pay_status
+            when 'ошибка' then 'ошибка'::vlasov_food.order_pay_status
+            else 'ожидает'::vlasov_food.order_pay_status
+        end;
         v_review_type := (enum_range(null::vlasov_food.review_entity_type))[
             1 + floor(random() * cardinality(enum_range(null::vlasov_food.review_entity_type)))::int
         ];
@@ -259,8 +279,11 @@ begin
             v_commission,
             v_total,
             v_order_status,
-            'оплачен',
-            substring(md5(random()::text), 1, 1 + floor(random() * 31)::int)
+            v_pay_status,
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, case when random() < 0.5
+                                          then 20 + floor(random() * 60)::int
+                                          else 200 + floor(random() * 400)::int end))
         ) returning order_id into v_order_id;
 
         for k in 1..n_dishes loop
@@ -277,7 +300,7 @@ begin
             v_total,
             exts.uuid_generate_v4(),
             order_time + interval '30 minutes',
-            'успех'
+            v_payment_status
         );
 
         v_entity_id := case v_review_type
@@ -295,10 +318,16 @@ begin
             v_entity_id,
             v_review_type,
             v_order_id,
-            substring(md5(random()::text), 1, 1 + floor(random() * 31)::int),
+            (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+             from generate_series(1, case when random() < 0.5
+                                          then 20 + floor(random() * 60)::int
+                                          else 200 + floor(random() * 400)::int end)),
             case
                 when random() < 0.5 then null
-                else 'https://cdn.foodexpress.ru/img/' || md5(random()::text) || '.jpg'
+                else 'https://cdn.foodexpress.ru/img/'
+                     || (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '')
+                         from generate_series(1, 8 + floor(random() * 8)::int))
+                     || '.jpg'
             end,
             1 + floor(random() * 5)::int
         );
